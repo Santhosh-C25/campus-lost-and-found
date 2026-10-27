@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Found Item – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>Report Found Item</span>
+    </nav>
+    <h1>Report a Found Item</h1>
+    <p>Help return a found item to its owner by reporting it here.</p>
+  </div>
+</div>
+
+<main class="container container-md" style="padding-bottom:3rem">
+  <div class="card" style="padding:2rem">
+    <div id="alert-box" class="alert alert-error hidden" role="alert"></div>
+
+    <form id="report-form" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="reportType" value="Found" />
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="itemName" class="form-label">Item Name <span class="required">*</span></label>
+          <input type="text" id="itemName" name="itemName" class="form-control" placeholder="e.g. Blue Water Bottle" required maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label for="category" class="form-label">Category <span class="required">*</span></label>
+          <select id="category" name="category" class="form-control" required>
+            <option value="">Select category…</option>
+            <option>Electronics</option><option>Documents</option><option>Bags</option>
+            <option>Keys</option><option>Accessories</option><option>Clothing</option>
+            <option>Books</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description <span class="required">*</span></label>
+        <textarea id="description" name="description" class="form-control" rows="4"
+          placeholder="Describe what you found: colour, brand, contents, any labels…" required minlength="10" maxlength="1000"></textarea>
+        <div class="form-hint"><span id="desc-count">0</span>/1000 characters</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dateOccurred" class="form-label">Date Found <span class="required">*</span></label>
+          <input type="date" id="dateOccurred" name="dateOccurred" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label for="location" class="form-label">Location Found <span class="required">*</span></label>
+          <input type="text" id="location" name="location" class="form-control" placeholder="e.g. Sports Complex Parking" required maxlength="150" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Item Photo</label>
+        <div class="file-upload-area" id="upload-area" tabindex="0" role="button" aria-label="Upload item photo">
+          <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Choose image file" />
+          <div class="file-upload-icon">📷</div>
+          <p style="margin:0;color:var(--gray-600)">Drag &amp; drop or click to upload</p>
+          <p class="text-small text-muted">JPG, PNG, GIF, WEBP – max 5 MB</p>
+        </div>
+        <div class="file-upload-preview hidden" id="preview-wrap">
+          <img id="preview-img" alt="Preview" style="border-radius:var(--radius);max-height:200px" />
+          <button type="button" class="btn btn-ghost btn-sm mt-1" onclick="clearImage()">Remove Image</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:1rem;justify-content:flex-end;flex-wrap:wrap;margin-top:1.5rem">
+        <a href="/items.html" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">✅ Submit Found Report</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await requireLogin();
+  if (!auth) return;
+  document.getElementById('dateOccurred').max = new Date().toISOString().split('T')[0];
+});
+
+const desc = document.getElementById('description');
+const counter = document.getElementById('desc-count');
+desc.addEventListener('input', () => { counter.textContent = desc.value.length; });
+
+const imageInput = document.getElementById('image');
+const previewWrap = document.getElementById('preview-wrap');
+const previewImg = document.getElementById('preview-img');
+const uploadArea = document.getElementById('upload-area');
+
+imageInput.addEventListener('change', () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Image too large. Max 5 MB.', 'error'); imageInput.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = (e) => { previewImg.src = e.target.result; previewWrap.classList.remove('hidden'); };
+  reader.readAsDataURL(file);
+});
+
+uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault(); uploadArea.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) { imageInput.files = e.dataTransfer.files; imageInput.dispatchEvent(new Event('change')); }
+});
+uploadArea.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') imageInput.click(); });
+
+function clearImage() { imageInput.value = ''; previewImg.src = ''; previewWrap.classList.add('hidden'); }
+
+document.getElementById('report-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById('alert-box');
+  alertBox.classList.add('hidden');
+
+  const itemName = document.getElementById('itemName').value.trim();
+  const category = document.getElementById('category').value;
+  const description = document.getElementById('description').value.trim();
+  const dateOccurred = document.getElementById('dateOccurred').value;
+  const location = document.getElementById('location').value.trim();
+
+  if (!itemName || !category || !description || !dateOccurred || !location) {
+    alertBox.textContent = 'Please fill in all required fields.';
+    alertBox.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('itemName', itemName);
+  fd.append('category', category);
+  fd.append('description', description);
+  fd.append('dateOccurred', dateOccurred);
+  fd.append('location', location);
+  fd.append('reportType', 'Found');
+  if (imageInput.files[0]) fd.append('image', imageInput.files[0]);
+
+  try {
+    const data = await apiFetch('/api/items', { method: 'POST', body: fd });
+    showToast('Found item reported successfully!', 'success');
+    setTimeout(() => window.location.href = `/item-details.html?id=${data.item._id}`, 1200);
+  } catch (err) {
+    alertBox.textContent = err.message || 'Failed to submit report.';
+    alertBox.classList.remove('hidden');
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

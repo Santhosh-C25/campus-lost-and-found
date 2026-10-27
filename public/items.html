@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Items – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Lost & Found Items</h1>
+    <p>Search for your item or help someone recover theirs.</p>
+  </div>
+</div>
+
+<main class="container" style="padding-top:0;padding-bottom:3rem">
+
+  <!-- Search & Filters -->
+  <div class="search-section">
+    <div class="search-bar">
+      <label for="search-input" class="visually-hidden">Search items</label>
+      <input type="text" id="search-input" placeholder="🔍 Search by name, description, or location…" aria-label="Search items" />
+      <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    </div>
+    <div class="filters-row">
+      <div class="filter-group">
+        <label for="filter-type">Type</label>
+        <select id="filter-type">
+          <option value="">All Types</option>
+          <option value="Lost">Lost</option>
+          <option value="Found">Found</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-category">Category</label>
+        <select id="filter-category">
+          <option value="">All Categories</option>
+          <option>Electronics</option><option>Documents</option><option>Bags</option>
+          <option>Keys</option><option>Accessories</option><option>Clothing</option>
+          <option>Books</option><option>Other</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-status">Status</label>
+        <select id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="Open">Open</option>
+          <option value="Claim Pending">Claim Pending</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-location">Location</label>
+        <input type="text" id="filter-location" placeholder="e.g. Library" aria-label="Filter by location" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-from">Date From</label>
+        <input type="date" id="filter-from" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-to">Date To</label>
+        <input type="date" id="filter-to" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-sort">Sort</label>
+        <select id="filter-sort">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+
+  <!-- Results header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+    <div id="results-info" class="text-muted" aria-live="polite"></div>
+    <div style="display:flex;gap:.5rem">
+      <a href="/report-lost.html" class="btn btn-danger btn-sm">+ Report Lost</a>
+      <a href="/report-found.html" class="btn btn-primary btn-sm">+ Report Found</a>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div id="items-grid" class="items-grid" aria-live="polite"></div>
+
+  <!-- Pagination -->
+  <div id="pagination"></div>
+
+</main>
+
+<footer style="background:var(--navy-dark);color:rgba(255,255,255,.6);text-align:center;padding:1.5rem">
+  <p>© 2025 Campus Lost & Found</p>
+</footer>
+
+<div id="toast-container"></div>
+
+<script src="/js/utils.js"></script>
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+// Pre-fill filters from URL params
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('category')) document.getElementById('filter-category').value = urlParams.get('category');
+if (urlParams.get('reportType')) document.getElementById('filter-type').value = urlParams.get('reportType');
+
+async function loadItems(page = 1) {
+  currentPage = page;
+  const grid = document.getElementById('items-grid');
+  const info = document.getElementById('results-info');
+  grid.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  const params = new URLSearchParams();
+  params.set('page', page);
+  params.set('limit', 12);
+
+  const search = document.getElementById('search-input').value.trim();
+  const type = document.getElementById('filter-type').value;
+  const cat = document.getElementById('filter-category').value;
+  const status = document.getElementById('filter-status').value;
+  const loc = document.getElementById('filter-location').value.trim();
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+  const sort = document.getElementById('filter-sort').value;
+
+  if (search) params.set('search', search);
+  if (type) params.set('reportType', type);
+  if (cat) params.set('category', cat);
+  if (status) params.set('status', status);
+  if (loc) params.set('location', loc);
+  if (from) params.set('dateFrom', from);
+  if (to) params.set('dateTo', to);
+  params.set('sort', sort);
+
+  try {
+    const data = await apiFetch(`/api/items?${params}`);
+    totalPages = data.pages || 1;
+
+    info.textContent = `${data.total} item${data.total !== 1 ? 's' : ''} found`;
+
+    if (!data.items || data.items.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">📭</div>
+          <h3>No items found</h3>
+          <p>Try adjusting your search filters.</p>
+          <a href="/report-lost.html" class="btn btn-primary mt-2">Report a Lost Item</a>
+        </div>`;
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = data.items.map(item => `
+      <article class="card item-card">
+        <a href="/item-details.html?id=${item._id}">
+          ${item.imagePath
+            ? `<img class="card-img" src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}" loading="lazy">`
+            : `<div class="card-img-placeholder">${categoryIcon(item.category)}</div>`}
+        </a>
+        <div class="card-body">
+          <div class="item-meta">
+            ${typeBadge(item.reportType)}
+            ${statusBadge(item.status)}
+          </div>
+          <h3><a href="/item-details.html?id=${item._id}">${escapeHtml(item.itemName)}</a></h3>
+          <p class="text-muted text-small" style="margin:.25rem 0">
+            <span class="badge badge-cat">${escapeHtml(item.category)}</span>
+          </p>
+          <p class="text-muted text-small">📍 ${escapeHtml(item.location)}</p>
+          <p class="text-muted text-small">🕒 ${timeAgo(item.createdAt)}</p>
+        </div>
+        <div class="card-footer" style="display:flex;justify-content:flex-end">
+          <a href="/item-details.html?id=${item._id}" class="btn btn-outline btn-sm">View Details</a>
+        </div>
+      </article>
+    `).join('');
+
+    buildPagination(document.getElementById('pagination'), currentPage, totalPages, 'loadItems');
+  } catch (err) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function doSearch() { loadItems(1); }
+function resetFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-category').value = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-location').value = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
+  document.getElementById('filter-sort').value = 'newest';
+  loadItems(1);
+}
+
+document.getElementById('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+loadItems(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Users – Admin</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+  </div>
+</nav>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="sidebar-section">Overview</div>
+    <a href="/admin/dashboard.html">📊 Dashboard</a>
+    <div class="sidebar-section">Management</div>
+    <a href="/admin/reports.html">📋 Reports</a>
+    <a href="/admin/claims.html">🏷️ Claims</a>
+    <a href="/admin/users.html" class="active">👥 Users</a>
+    <div class="sidebar-section">Site</div>
+    <a href="/items.html">🔍 Browse Items</a>
+    <a href="#" onclick="logout(event)">🚪 Logout</a>
+  </aside>
+
+  <main class="admin-main">
+    <h1 style="margin-bottom:1.5rem">Manage Users</h1>
+
+    <div class="search-section" style="margin-bottom:1.5rem">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="🔍 Search by name or email…" />
+        <button class="btn btn-primary" onclick="loadUsers(1)">Search</button>
+      </div>
+    </div>
+
+    <div id="results-info" class="text-muted mb-2" aria-live="polite"></div>
+
+    <div class="table-wrapper">
+      <table aria-label="Users list">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Dept.</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="7" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
+  </main>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header"><h3>Confirm</h3><button class="modal-close" onclick="document.getElementById('confirm-modal').classList.remove('show')" aria-label="Close">✕</button></div>
+    <div class="modal-body"><p id="confirm-message"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('confirm-modal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+let currentPage = 1;
+
+async function init() {
+  await requireAdminRole();
+  loadUsers(1);
+}
+
+async function loadUsers(page) {
+  currentPage = page;
+  const body = document.getElementById('table-body');
+  body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr>';
+
+  const params = new URLSearchParams({ page, limit: 20 });
+  const search = document.getElementById('search-input').value.trim();
+  if (search) params.set('search', search);
+
+  try {
+    const data = await apiFetch(`/api/users/admin/users?${params}`);
+    document.getElementById('results-info').textContent = `${data.total} user${data.total !== 1 ? 's' : ''}`;
+
+    if (!data.users || data.users.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500)">No users found.</td></tr>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    body.innerHTML = data.users.map(u => `
+      <tr>
+        <td><strong>${escapeHtml(u.name)}</strong></td>
+        <td class="text-small">${escapeHtml(u.email)}</td>
+        <td>
+          <span class="badge ${u.role === 'admin' ? 'badge-pending' : 'badge-open'}">${u.role}</span>
+        </td>
+        <td class="text-small">${escapeHtml(u.department || '—')}</td>
+        <td>
+          <span class="badge ${u.isActive ? 'badge-found' : 'badge-rejected'}">${u.isActive ? 'Active' : 'Inactive'}</span>
+        </td>
+        <td class="text-small">${formatDate(u.createdAt)}</td>
+        <td>
+          <div class="actions-cell">
+            ${u.role !== 'admin' ? `
+              <button class="btn btn-ghost btn-sm" onclick="toggleStatus('${u._id}', ${u.isActive})">
+                ${u.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}', '${escapeHtml(u.name).replace(/'/g,"\\'")}')">Delete</button>
+            ` : '<span class="text-muted text-small">Protected</span>'}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    buildPagination(document.getElementById('pagination'), page, data.pages, 'loadUsers');
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red)">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function toggleStatus(id, isActive) {
+  const action = isActive ? 'deactivate' : 'activate';
+  showConfirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this user?`, async () => {
+    try {
+      await apiFetch(`/api/users/admin/users/${id}/toggle-status`, { method: 'PUT' });
+      showToast(`User ${action}d.`, 'success');
+      loadUsers(currentPage);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+async function deleteUser(id, name) {
+  showConfirm(`Permanently delete user "${name}"?`, async () => {
+    try {
+      await apiFetch(`/api/users/admin/users/${id}`, { method: 'DELETE' });
+      showToast('User deleted.', 'success');
+      loadUsers(currentPage);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadUsers(1); });
+init();
+</script>
+</body>
+</html>

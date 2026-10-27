@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Claim – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>Submit Claim</span>
+    </nav>
+    <h1>Submit a Claim</h1>
+    <p>Explain why this item belongs to you.</p>
+  </div>
+</div>
+
+<main class="container container-sm" style="padding-bottom:3rem">
+
+  <!-- Item summary card -->
+  <div class="card mb-3" id="item-card">
+    <div class="card-body">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Claim form -->
+  <div class="card">
+    <div class="card-body">
+      <div id="alert-box" class="alert alert-error hidden" role="alert"></div>
+
+      <form id="claim-form" novalidate>
+        <div class="form-group">
+          <label for="explanation" class="form-label">Why does this item belong to you? <span class="required">*</span></label>
+          <textarea id="explanation" name="explanation" class="form-control" rows="5"
+            placeholder="Describe in detail why you believe this is your item. Include when and where you lost it, what was inside, etc. (min. 20 characters)"
+            required minlength="20" maxlength="1000"></textarea>
+          <div class="form-hint"><span id="exp-count">0</span>/1000</div>
+        </div>
+
+        <div class="form-group">
+          <label for="identifyingDetails" class="form-label">Identifying Details (optional)</label>
+          <textarea id="identifyingDetails" name="identifyingDetails" class="form-control" rows="3"
+            placeholder="Unique marks, serial numbers, contents only you would know…" maxlength="500"></textarea>
+        </div>
+
+        <div class="alert alert-warning">
+          ⚠️ False claims are a violation of campus rules. Only submit if the item genuinely belongs to you.
+        </div>
+
+        <div style="display:flex;gap:1rem;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem">
+          <a href="#" id="cancel-link" class="btn btn-ghost">Cancel</a>
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Submit Claim</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+const itemId = new URLSearchParams(window.location.search).get('itemId');
+if (!itemId) window.location.href = '/items.html';
+
+document.getElementById('cancel-link').href = `/item-details.html?id=${itemId}`;
+
+async function init() {
+  const auth = await requireLogin();
+  if (!auth) return;
+
+  // Load item details
+  try {
+    const data = await apiFetch(`/api/items/${itemId}`);
+    const item = data.item;
+    document.getElementById('item-card').innerHTML = `
+      <div class="card-body" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+        ${item.imagePath ? `<img src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}" style="width:80px;height:80px;object-fit:cover;border-radius:var(--radius)">` : `<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--gray-100);border-radius:var(--radius)">${categoryIcon(item.category)}</div>`}
+        <div>
+          <div style="display:flex;gap:.4rem;margin-bottom:.3rem">${typeBadge(item.reportType)} ${statusBadge(item.status)}</div>
+          <h3 style="margin:0">${escapeHtml(item.itemName)}</h3>
+          <p class="text-muted text-small">📍 ${escapeHtml(item.location)} · ${formatDate(item.dateOccurred)}</p>
+        </div>
+      </div>`;
+  } catch (err) {
+    showToast('Item not found.', 'error');
+    setTimeout(() => window.location.href = '/items.html', 1500);
+    return;
+  }
+}
+
+const expInput = document.getElementById('explanation');
+const expCounter = document.getElementById('exp-count');
+expInput.addEventListener('input', () => expCounter.textContent = expInput.value.length);
+
+document.getElementById('claim-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById('alert-box');
+  alertBox.classList.add('hidden');
+
+  const explanation = expInput.value.trim();
+  const identifyingDetails = document.getElementById('identifyingDetails').value.trim();
+
+  if (!explanation || explanation.length < 20) {
+    alertBox.textContent = 'Explanation must be at least 20 characters.';
+    alertBox.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    await apiFetch('/api/claims', {
+      method: 'POST',
+      body: JSON.stringify({ itemId, explanation, identifyingDetails }),
+    });
+    showToast('Claim submitted! An admin will review it shortly.', 'success');
+    setTimeout(() => window.location.href = '/my-claims.html', 1500);
+  } catch (err) {
+    alertBox.textContent = err.message || 'Failed to submit claim.';
+    alertBox.classList.remove('hidden');
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>

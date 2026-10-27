@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Claims – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>My Claims</h1>
+    <p>Track the status of claims you have submitted.</p>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem">
+
+  <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+    <button class="tab-btn active" onclick="filterStatus('', this)">All</button>
+    <button class="tab-btn" onclick="filterStatus('Pending', this)">Pending</button>
+    <button class="tab-btn" onclick="filterStatus('Approved', this)">Approved</button>
+    <button class="tab-btn" onclick="filterStatus('Rejected', this)">Rejected</button>
+  </div>
+
+  <div id="claims-list" aria-live="polite"></div>
+  <div id="pagination"></div>
+</main>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+let currentPage = 1;
+let currentStatus = '';
+
+async function init() {
+  await requireLogin();
+  loadClaims(1);
+}
+
+function filterStatus(status, btn) {
+  currentStatus = status;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadClaims(1);
+}
+
+async function loadClaims(page) {
+  currentPage = page;
+  const list = document.getElementById('claims-list');
+  list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  const params = new URLSearchParams({ page, limit: 10 });
+  if (currentStatus) params.set('status', currentStatus);
+
+  try {
+    const data = await apiFetch(`/api/claims/my?${params}`);
+
+    if (!data.claims || data.claims.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🏷️</div>
+          <h3>No claims yet</h3>
+          <p>You haven't submitted any claims.</p>
+          <a href="/items.html" class="btn btn-primary mt-2">Browse Items</a>
+        </div>`;
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    list.innerHTML = data.claims.map(claim => {
+      const item = claim.item;
+      const statusColour = { Pending: '#664d03', Approved: '#0f5132', Rejected: '#842029' };
+      const statusBg = { Pending: 'var(--yellow-light)', Approved: 'var(--green-light)', Rejected: 'var(--red-light)' };
+      return `
+        <div class="card mb-2" style="overflow:visible">
+          <div class="card-body" style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+            <a href="/item-details.html?id=${item._id}" style="flex-shrink:0">
+              ${item.imagePath
+                ? `<img src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}" style="width:80px;height:80px;object-fit:cover;border-radius:var(--radius)">`
+                : `<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--gray-100);border-radius:var(--radius)">${categoryIcon(item.category)}</div>`}
+            </a>
+            <div style="flex:1;min-width:200px">
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">
+                ${typeBadge(item.reportType)}
+                ${statusBadge(item.status)}
+              </div>
+              <h3><a href="/item-details.html?id=${item._id}">${escapeHtml(item.itemName)}</a></h3>
+              <p class="text-muted text-small">📍 ${escapeHtml(item.location)}</p>
+              <p class="text-small mt-1" style="background:${statusBg[claim.status]};color:${statusColour[claim.status]};padding:.3rem .6rem;border-radius:4px;display:inline-block;font-weight:600">
+                Claim: ${claim.status}
+              </p>
+              ${claim.adminNotes ? `<p class="text-small text-muted mt-1">Admin note: ${escapeHtml(claim.adminNotes)}</p>` : ''}
+              <p class="text-muted text-small">Submitted ${timeAgo(claim.createdAt)}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    buildPagination(document.getElementById('pagination'), currentPage, data.pages, 'loadClaims');
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

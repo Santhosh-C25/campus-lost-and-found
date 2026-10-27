@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact & Help – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Contact &amp; Help</h1>
+    <p>Have questions or need assistance? We're here to help.</p>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start">
+
+    <!-- FAQ -->
+    <div>
+      <h2 style="margin-bottom:1.25rem">Frequently Asked Questions</h2>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:.4rem">How do I report a lost item?</h3>
+          <p class="text-muted" style="margin:0">Log in to your account, click "Report Lost Item" from the navigation, fill in the details, and submit. Your report will be visible to all users immediately.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:.4rem">How do I claim a found item?</h3>
+          <p class="text-muted" style="margin:0">Find the item in the listings, open its detail page, and click "Submit a Claim". Provide a detailed explanation proving ownership. An admin will review and approve or reject the claim.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:.4rem">How long does claim review take?</h3>
+          <p class="text-muted" style="margin:0">Administrators aim to review claims within 1–2 business days. You will see the status update in your "My Claims" page.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:.4rem">Can I edit a report after submitting?</h3>
+          <p class="text-muted" style="margin:0">Yes, you can edit your own reports as long as they are not yet resolved. Go to "My Reports" and click "Edit" next to the report.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h3 style="font-size:1rem;margin-bottom:.4rem">Is my personal information safe?</h3>
+          <p class="text-muted" style="margin:0">Yes. Passwords are hashed with bcrypt and never stored in plain text. Your contact details are only shown to administrators during claim review.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact info -->
+    <div>
+      <h2 style="margin-bottom:1.25rem">Contact Information</h2>
+      <div class="card" style="padding:1.5rem;margin-bottom:1rem">
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
+          <div style="display:flex;gap:.75rem;align-items:center">
+            <div style="font-size:1.75rem">📍</div>
+            <div>
+              <div class="bold">Campus Office</div>
+              <div class="text-muted">Student Services Building, Room 101<br>Main Campus</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:center">
+            <div style="font-size:1.75rem">📧</div>
+            <div>
+              <div class="bold">Email</div>
+              <div class="text-muted">lostandfound@campus.edu</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:center">
+            <div style="font-size:1.75rem">🕒</div>
+            <div>
+              <div class="bold">Office Hours</div>
+              <div class="text-muted">Monday – Friday: 8:00 AM – 5:00 PM<br>Saturday: 9:00 AM – 1:00 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:1.5rem">
+        <h3 style="margin-bottom:1rem">Quick Links</h3>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <a href="/register.html" class="btn btn-outline">Create an Account</a>
+          <a href="/items.html" class="btn btn-outline">Browse All Items</a>
+          <a href="/report-lost.html" class="btn btn-danger">Report Lost Item</a>
+          <a href="/report-found.html" class="btn btn-primary">Report Found Item</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer style="background:var(--navy-dark);color:rgba(255,255,255,.6);text-align:center;padding:1.5rem">
+  <p>© 2025 Campus Lost & Found</p>
+</footer>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+</body>
+</html>

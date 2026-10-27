@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Reports – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>My Reports</h1>
+    <p>Manage all your lost and found reports.</p>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="tab-btn active" onclick="filterStatus('', this)">All</button>
+      <button class="tab-btn" onclick="filterStatus('Open', this)">Open</button>
+      <button class="tab-btn" onclick="filterStatus('Claim Pending', this)">Claim Pending</button>
+      <button class="tab-btn" onclick="filterStatus('Resolved', this)">Resolved</button>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <a href="/report-lost.html" class="btn btn-danger btn-sm">+ Report Lost</a>
+      <a href="/report-found.html" class="btn btn-primary btn-sm">+ Report Found</a>
+    </div>
+  </div>
+
+  <div id="items-grid" class="items-grid" aria-live="polite"></div>
+  <div id="pagination"></div>
+</main>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header"><h3>Confirm Delete</h3><button class="modal-close" onclick="document.getElementById('confirm-modal').classList.remove('show')" aria-label="Close">✕</button></div>
+    <div class="modal-body"><p id="confirm-message"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('confirm-modal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+let currentPage = 1;
+let currentStatus = '';
+
+async function init() {
+  const auth = await requireLogin();
+  if (!auth) return;
+  loadItems(1);
+}
+
+function filterStatus(status, btn) {
+  currentStatus = status;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadItems(1);
+}
+
+async function loadItems(page) {
+  currentPage = page;
+  const grid = document.getElementById('items-grid');
+  grid.innerHTML = '<div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div></div>';
+
+  const params = new URLSearchParams({ page, limit: 12 });
+  if (currentStatus) params.set('status', currentStatus);
+
+  try {
+    const data = await apiFetch(`/api/items/my?${params}`);
+
+    if (!data.items || data.items.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">📋</div>
+          <h3>No reports yet</h3>
+          <p>You haven't submitted any reports.</p>
+          <a href="/report-lost.html" class="btn btn-primary mt-2">Report a Lost Item</a>
+        </div>`;
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = data.items.map(item => `
+      <article class="card item-card">
+        <a href="/item-details.html?id=${item._id}">
+          ${item.imagePath
+            ? `<img class="card-img" src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}" loading="lazy">`
+            : `<div class="card-img-placeholder">${categoryIcon(item.category)}</div>`}
+        </a>
+        <div class="card-body">
+          <div class="item-meta">
+            ${typeBadge(item.reportType)}
+            ${statusBadge(item.status)}
+          </div>
+          <h3><a href="/item-details.html?id=${item._id}">${escapeHtml(item.itemName)}</a></h3>
+          <p class="text-muted text-small">📍 ${escapeHtml(item.location)}</p>
+          <p class="text-muted text-small">🕒 ${timeAgo(item.createdAt)}</p>
+        </div>
+        <div class="card-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+          ${item.status !== 'Resolved' ? `<a href="/edit-item.html?id=${item._id}" class="btn btn-ghost btn-sm">Edit</a>` : ''}
+          ${item.status !== 'Resolved' ? `<button class="btn btn-outline btn-sm" onclick="resolveItem('${item._id}')">Resolve</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteItem('${item._id}', '${escapeHtml(item.itemName).replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </article>
+    `).join('');
+
+    buildPagination(document.getElementById('pagination'), currentPage, data.pages, 'loadItems');
+  } catch (err) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">⚠️</div><p>${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+async function resolveItem(id) {
+  showConfirm('Mark this item as resolved?', async () => {
+    try {
+      await apiFetch(`/api/items/${id}/resolve`, { method: 'PUT' });
+      showToast('Item marked as resolved.', 'success');
+      loadItems(currentPage);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+async function deleteItem(id, name) {
+  showConfirm(`Delete "${name}"? This cannot be undone.`, async () => {
+    try {
+      await apiFetch(`/api/items/${id}`, { method: 'DELETE' });
+      showToast('Report deleted.', 'success');
+      loadItems(currentPage);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+init();
+</script>
+</body>
+</html>

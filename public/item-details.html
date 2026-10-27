@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Item Details – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>Item Details</span>
+    </nav>
+    <h1 id="page-title">Item Details</h1>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem">
+  <div id="loading" class="loading-spinner"><div class="spinner"></div></div>
+  <div id="content" class="hidden"></div>
+</main>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-header"><h3>Confirm Action</h3><button class="modal-close" onclick="document.getElementById('confirm-modal').classList.remove('show')" aria-label="Close">✕</button></div>
+    <div class="modal-body"><p id="confirm-message"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('confirm-modal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+const itemId = new URLSearchParams(window.location.search).get('id');
+let currentUser = null;
+let itemData = null;
+
+if (!itemId) window.location.href = '/items.html';
+
+async function init() {
+  const auth = await getAuthState();
+  currentUser = auth.loggedIn ? auth.user : null;
+
+  try {
+    const data = await apiFetch(`/api/items/${itemId}`);
+    itemData = data.item;
+    render(itemData);
+  } catch (err) {
+    document.getElementById('loading').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>Item not found</h3><p>${escapeHtml(err.message)}</p><a href="/items.html" class="btn btn-primary mt-2">Browse Items</a></div>`;
+  }
+}
+
+function render(item) {
+  document.getElementById('page-title').textContent = item.itemName;
+  document.title = `${item.itemName} – Campus Lost & Found`;
+
+  const isOwner = currentUser && item.reportedBy?._id === currentUser.id;
+  const isAdmin = currentUser?.role === 'admin';
+  const canEdit = (isOwner || isAdmin) && item.status !== 'Resolved';
+  const canClaim = currentUser && !isOwner && item.status !== 'Resolved';
+  const canResolve = (isOwner || isAdmin) && item.status !== 'Resolved';
+
+  const img = item.imagePath
+    ? `<img src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}">`
+    : `<div class="no-img">${categoryIcon(item.category)}</div>`;
+
+  const html = `
+    <div class="item-detail-grid">
+      <div>
+        <div class="item-detail-img">${img}</div>
+      </div>
+      <div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          ${typeBadge(item.reportType)}
+          ${statusBadge(item.status)}
+          <span class="badge badge-cat">${escapeHtml(item.category)}</span>
+        </div>
+        <h2 style="margin-bottom:1.25rem">${escapeHtml(item.itemName)}</h2>
+
+        <div class="item-info-row"><span class="info-label">📝 Description</span><span class="info-value">${escapeHtml(item.description)}</span></div>
+        <div class="item-info-row"><span class="info-label">📍 Location</span><span class="info-value">${escapeHtml(item.location)}</span></div>
+        <div class="item-info-row"><span class="info-label">📅 Date</span><span class="info-value">${formatDate(item.dateOccurred)}</span></div>
+        <div class="item-info-row"><span class="info-label">👤 Reported by</span><span class="info-value">${escapeHtml(item.reportedBy?.name || 'Anonymous')}</span></div>
+        <div class="item-info-row"><span class="info-label">🕒 Posted</span><span class="info-value">${timeAgo(item.createdAt)}</span></div>
+        ${item.adminNotes ? `<div class="item-info-row"><span class="info-label">📌 Admin Notes</span><span class="info-value">${escapeHtml(item.adminNotes)}</span></div>` : ''}
+
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem">
+          ${canClaim ? `<button class="btn btn-primary" onclick="openClaimPage()">Submit a Claim</button>` : ''}
+          ${!currentUser ? `<a href="/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}" class="btn btn-primary">Login to Claim</a>` : ''}
+          ${canResolve ? `<button class="btn btn-outline" onclick="resolveItem()">Mark as Resolved</button>` : ''}
+          ${canEdit ? `<a href="/edit-item.html?id=${item._id}" class="btn btn-ghost">Edit Report</a>` : ''}
+          ${(isOwner || isAdmin) ? `<button class="btn btn-danger" onclick="deleteItem()">Delete</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('loading').classList.add('hidden');
+  const content = document.getElementById('content');
+  content.innerHTML = html;
+  content.classList.remove('hidden');
+}
+
+function openClaimPage() {
+  window.location.href = `/claim.html?itemId=${itemId}`;
+}
+
+async function resolveItem() {
+  showConfirm('Mark this item as resolved? This action cannot be undone.', async () => {
+    try {
+      await apiFetch(`/api/items/${itemId}/resolve`, { method: 'PUT' });
+      showToast('Item marked as resolved.', 'success');
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+async function deleteItem() {
+  showConfirm('Delete this report permanently? All associated claims will also be deleted.', async () => {
+    try {
+      await apiFetch(`/api/items/${itemId}`, { method: 'DELETE' });
+      showToast('Report deleted.', 'success');
+      setTimeout(() => window.location.href = '/items.html', 1000);
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+init();
+</script>
+</body>
+</html>

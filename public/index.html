@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Lost & Found – Home</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand" aria-label="Campus Lost and Found Home">
+      <span class="brand-icon">🔍</span>
+      Campus <span>Lost&Found</span>
+    </a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-content">
+    <h1 id="hero-heading">Lost something on campus?<br>We'll help you find it.</h1>
+    <p>Report lost or found items, connect with other students, and recover your belongings quickly and safely.</p>
+    <div class="hero-actions">
+      <a href="/items.html" class="btn btn-white btn-lg">Browse All Items</a>
+      <a href="/report-lost.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.7);color:white">Report Lost Item</a>
+    </div>
+    <div class="hero-stats" id="hero-stats" aria-live="polite">
+      <div class="hero-stat"><div class="number" id="stat-items">—</div><div class="label">Items Reported</div></div>
+      <div class="hero-stat"><div class="number" id="stat-resolved">—</div><div class="label">Items Returned</div></div>
+      <div class="hero-stat"><div class="number" id="stat-users">—</div><div class="label">Students Helped</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ─────────────────────────────────────────────────────────── -->
+<section class="section" aria-labelledby="how-heading">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="how-heading">How It Works</h2>
+      <p>Getting your belongings back is simple and secure.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2rem">
+      <div class="card" style="padding:2rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:1rem">📝</div>
+        <h3>1. Report</h3>
+        <p class="text-muted">Create a report for an item you lost or found on campus with details and a photo.</p>
+      </div>
+      <div class="card" style="padding:2rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
+        <h3>2. Search</h3>
+        <p class="text-muted">Browse and filter reports by category, location, and date to find matching items.</p>
+      </div>
+      <div class="card" style="padding:2rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:1rem">✉️</div>
+        <h3>3. Claim</h3>
+        <p class="text-muted">Submit a claim with proof of ownership so the admin can verify and connect you.</p>
+      </div>
+      <div class="card" style="padding:2rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:1rem">🎉</div>
+        <h3>4. Recover</h3>
+        <p class="text-muted">Collect your item once the claim is approved. Item marked as resolved.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Recent items ──────────────────────────────────────────────────────────── -->
+<section class="section" style="background:var(--white)" aria-labelledby="recent-heading">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="recent-heading">Recent Reports</h2>
+      <p>Latest lost and found items reported by students.</p>
+    </div>
+
+    <div id="recent-items-grid" class="items-grid">
+      <!-- Skeleton placeholders -->
+      <div class="card" style="animation:fadeIn .3s"><div class="card-img-placeholder">⏳</div><div class="card-body"><div style="height:1rem;background:var(--gray-200);border-radius:4px;margin-bottom:.5rem"></div><div style="height:.75rem;background:var(--gray-100);border-radius:4px;width:60%"></div></div></div>
+      <div class="card" style="animation:fadeIn .3s"><div class="card-img-placeholder">⏳</div><div class="card-body"><div style="height:1rem;background:var(--gray-200);border-radius:4px;margin-bottom:.5rem"></div><div style="height:.75rem;background:var(--gray-100);border-radius:4px;width:60%"></div></div></div>
+      <div class="card" style="animation:fadeIn .3s"><div class="card-img-placeholder">⏳</div><div class="card-body"><div style="height:1rem;background:var(--gray-200);border-radius:4px;margin-bottom:.5rem"></div><div style="height:.75rem;background:var(--gray-100);border-radius:4px;width:60%"></div></div></div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/items.html" class="btn btn-primary btn-lg">View All Items →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Categories ────────────────────────────────────────────────────────────── -->
+<section class="section" aria-labelledby="cat-heading">
+  <div class="container">
+    <div class="section-title">
+      <h2 id="cat-heading">Browse by Category</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem" id="cat-grid"></div>
+  </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────────────────────────────────── -->
+<section style="background:var(--navy);padding:3rem 1.25rem;text-align:center;color:white">
+  <h2 style="color:white;margin-bottom:.75rem">Found something? Report it now.</h2>
+  <p style="color:rgba(255,255,255,.75);margin-bottom:1.5rem">Help a fellow student get their belongings back. It only takes a minute.</p>
+  <a href="/report-found.html" class="btn btn-primary btn-lg">Report Found Item</a>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <h3>🔍 Campus Lost&Found</h3>
+      <p>Helping students reconnect with their belongings since 2025. Report, search, and claim lost items on campus safely and efficiently.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="/items.html">Browse Items</a></li>
+        <li><a href="/report-lost.html">Report Lost</a></li>
+        <li><a href="/report-found.html">Report Found</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Account</h4>
+      <ul>
+        <li><a href="/register.html">Register</a></li>
+        <li><a href="/login.html">Login</a></li>
+        <li><a href="/profile.html">Profile</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Info</h4>
+      <ul>
+        <li><a href="/about.html">About Us</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 Campus Lost & Found Management System. Built for Advance Web Technology course.</p>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+
+<script src="/js/utils.js"></script>
+<script>
+const CATEGORIES = [
+  { name: 'Electronics', icon: '💻' },
+  { name: 'Documents', icon: '📄' },
+  { name: 'Bags', icon: '🎒' },
+  { name: 'Keys', icon: '🔑' },
+  { name: 'Accessories', icon: '👜' },
+  { name: 'Clothing', icon: '👕' },
+  { name: 'Books', icon: '📚' },
+  { name: 'Other', icon: '📦' },
+];
+
+async function loadStats() {
+  try {
+    const data = await apiFetch('/api/admin/dashboard');
+    document.getElementById('stat-items').textContent = data.stats.totalItems;
+    document.getElementById('stat-resolved').textContent = data.stats.resolvedItems;
+    document.getElementById('stat-users').textContent = data.stats.totalUsers;
+  } catch {
+    // Not admin? Use public item count
+    try {
+      const d = await apiFetch('/api/items?limit=1');
+      document.getElementById('stat-items').textContent = d.total || '—';
+    } catch {}
+  }
+}
+
+async function loadRecentItems() {
+  const grid = document.getElementById('recent-items-grid');
+  try {
+    const data = await apiFetch('/api/items?limit=6&sort=newest');
+    if (!data.items || data.items.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>No items yet</h3><p>Be the first to report an item.</p></div>';
+      return;
+    }
+    grid.innerHTML = data.items.map(item => `
+      <article class="card item-card">
+        <a href="/item-details.html?id=${item._id}" aria-label="View ${escapeHtml(item.itemName)}">
+          ${item.imagePath
+            ? `<img class="card-img" src="${escapeHtml(item.imagePath)}" alt="${escapeHtml(item.itemName)}" loading="lazy">`
+            : `<div class="card-img-placeholder">${categoryIcon(item.category)}</div>`}
+        </a>
+        <div class="card-body">
+          <div class="item-meta">
+            ${typeBadge(item.reportType)}
+            ${statusBadge(item.status)}
+            <span class="badge badge-cat">${escapeHtml(item.category)}</span>
+          </div>
+          <h3><a href="/item-details.html?id=${item._id}">${escapeHtml(item.itemName)}</a></h3>
+          <p class="text-muted text-small">📍 ${escapeHtml(item.location)}</p>
+          <p class="text-muted text-small">🕒 ${timeAgo(item.createdAt)}</p>
+        </div>
+      </article>
+    `).join('');
+  } catch (err) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Could not load items.</p></div>';
+  }
+}
+
+function loadCategories() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = CATEGORIES.map(c => `
+    <a href="/items.html?category=${encodeURIComponent(c.name)}" class="card" style="padding:1.25rem;text-align:center;text-decoration:none">
+      <div style="font-size:2rem;margin-bottom:.5rem">${c.icon}</div>
+      <div style="font-weight:600;color:var(--navy);font-size:.9rem">${c.name}</div>
+    </a>
+  `).join('');
+}
+
+loadStats();
+loadRecentItems();
+loadCategories();
+</script>
+</body>
+</html>

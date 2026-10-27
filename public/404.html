@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 – Page Not Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .error-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .error-content { text-align: center; max-width: 500px; }
+    .error-code { font-size: clamp(5rem, 20vw, 10rem); font-weight: 900; color: var(--navy); line-height: 1; margin-bottom: 1rem; }
+    .error-code span { color: var(--teal); }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+  </div>
+</nav>
+
+<div class="error-page">
+  <div class="error-content">
+    <div class="error-code">4<span>0</span>4</div>
+    <h2 style="margin-bottom:.75rem">Looks like this page got lost too!</h2>
+    <p class="text-muted">The page you're looking for doesn't exist or has been moved.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;flex-wrap:wrap">
+      <a href="/" class="btn btn-primary btn-lg">Go Home</a>
+      <a href="/items.html" class="btn btn-secondary btn-lg">Browse Items</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+</body>
+</html>

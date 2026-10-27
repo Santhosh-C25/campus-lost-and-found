@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" aria-label="Admin navigation">
+    <div class="sidebar-section">Overview</div>
+    <a href="/admin/dashboard.html" class="active">📊 Dashboard</a>
+    <div class="sidebar-section">Management</div>
+    <a href="/admin/reports.html">📋 Reports</a>
+    <a href="/admin/claims.html">🏷️ Claims</a>
+    <a href="/admin/users.html">👥 Users</a>
+    <div class="sidebar-section">Site</div>
+    <a href="/items.html">🔍 Browse Items</a>
+    <a href="#" onclick="logout(event)">🚪 Logout</a>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 style="margin:0">Dashboard</h1>
+        <p class="text-muted" id="welcome-msg">Loading…</p>
+      </div>
+      <div id="clock" class="text-muted" aria-live="polite"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-info"><div class="value" id="s-users">—</div><div class="label">Total Students</div></div></div>
+      <div class="stat-card"><div class="stat-icon teal">📋</div><div class="stat-info"><div class="value" id="s-items">—</div><div class="label">Total Reports</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">📌</div><div class="stat-info"><div class="value" id="s-open">—</div><div class="label">Open Items</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><div class="value" id="s-resolved">—</div><div class="label">Resolved</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">🔴</div><div class="stat-info"><div class="value" id="s-lost">—</div><div class="label">Lost Reports</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🟢</div><div class="stat-info"><div class="value" id="s-found">—</div><div class="label">Found Reports</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">⏳</div><div class="stat-info"><div class="value" id="s-pending">—</div><div class="label">Pending Claims</div></div></div>
+      <div class="stat-card"><div class="stat-icon teal">🏷️</div><div class="stat-info"><div class="value" id="s-claims">—</div><div class="label">Total Claims</div></div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:2rem">
+
+      <!-- Recent items -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2 style="font-size:1.1rem;margin:0">Recent Reports</h2>
+          <a href="/admin/reports.html" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div id="recent-items" class="card">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Recent claims -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h2 style="font-size:1.1rem;margin:0">Recent Claims</h2>
+          <a href="/admin/claims.html" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div id="recent-claims" class="card">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+async function init() {
+  const auth = await requireAdminRole();
+  if (!auth) return;
+  document.getElementById('welcome-msg').textContent = `Welcome back, ${auth.user.name}`;
+
+  // Clock
+  const clockEl = document.getElementById('clock');
+  const tick = () => { clockEl.textContent = new Date().toLocaleString(); };
+  tick(); setInterval(tick, 1000);
+
+  try {
+    const data = await apiFetch('/api/admin/dashboard');
+    const s = data.stats;
+    document.getElementById('s-users').textContent = s.totalUsers;
+    document.getElementById('s-items').textContent = s.totalItems;
+    document.getElementById('s-open').textContent = s.openItems;
+    document.getElementById('s-resolved').textContent = s.resolvedItems;
+    document.getElementById('s-lost').textContent = s.lostItems;
+    document.getElementById('s-found').textContent = s.foundItems;
+    document.getElementById('s-pending').textContent = s.pendingClaims;
+    document.getElementById('s-claims').textContent = s.totalClaims;
+
+    // Recent items
+    const riEl = document.getElementById('recent-items');
+    if (data.recentItems.length === 0) {
+      riEl.innerHTML = '<div class="card-body text-muted">No reports yet.</div>';
+    } else {
+      riEl.innerHTML = '<ul style="list-style:none">' + data.recentItems.map(item => `
+        <li style="padding:.75rem 1.25rem;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <div>
+            <div class="bold text-small">${escapeHtml(item.itemName)}</div>
+            <div class="text-muted text-small">${escapeHtml(item.reportedBy?.name || '—')} · ${timeAgo(item.createdAt)}</div>
+          </div>
+          <div style="display:flex;gap:.3rem">
+            ${typeBadge(item.reportType)}
+            ${statusBadge(item.status)}
+          </div>
+        </li>`).join('') + '</ul>';
+    }
+
+    // Recent claims
+    const rcEl = document.getElementById('recent-claims');
+    if (data.recentClaims.length === 0) {
+      rcEl.innerHTML = '<div class="card-body text-muted">No claims yet.</div>';
+    } else {
+      rcEl.innerHTML = '<ul style="list-style:none">' + data.recentClaims.map(c => `
+        <li style="padding:.75rem 1.25rem;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <div>
+            <div class="bold text-small">${escapeHtml(c.item?.itemName || '—')}</div>
+            <div class="text-muted text-small">By ${escapeHtml(c.claimedBy?.name || '—')} · ${timeAgo(c.createdAt)}</div>
+          </div>
+          ${claimStatusBadge(c.status)}
+        </li>`).join('') + '</ul>';
+    }
+  } catch (err) {
+    showToast('Failed to load dashboard data: ' + err.message, 'error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

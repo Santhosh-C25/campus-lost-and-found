@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile – Campus Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-brand"><span class="brand-icon">🔍</span>Campus <span>Lost&Found</span></a>
+    <div class="nav-links" id="main-nav"></div>
+    <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>My Profile</h1>
+    <p>Manage your account information.</p>
+  </div>
+</div>
+
+<main class="container" style="padding-bottom:3rem">
+  <div id="loading" class="loading-spinner"><div class="spinner"></div></div>
+  <div id="content" class="hidden">
+
+    <div class="profile-header" id="profile-header"></div>
+
+    <div class="profile-content-grid">
+      <!-- Edit profile -->
+      <div class="card">
+        <div class="card-body">
+          <h3 style="margin-bottom:1.25rem">Profile Information</h3>
+          <div id="profile-alert" class="alert alert-error hidden" role="alert"></div>
+          <form id="profile-form" novalidate>
+            <div class="form-group">
+              <label for="name" class="form-label">Full Name <span class="required">*</span></label>
+              <input type="text" id="name" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" id="email" class="form-control" disabled />
+              <div class="form-hint">Email cannot be changed.</div>
+            </div>
+            <div class="form-group">
+              <label for="studentId" class="form-label">Student ID</label>
+              <input type="text" id="studentId" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label for="department" class="form-label">Department</label>
+              <input type="text" id="department" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label for="phone" class="form-label">Phone</label>
+              <input type="tel" id="phone" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary" id="profile-btn">Save Changes</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Change password -->
+      <div class="card">
+        <div class="card-body">
+          <h3 style="margin-bottom:1.25rem">Change Password</h3>
+          <div id="pw-alert" class="alert hidden" role="alert"></div>
+          <form id="password-form" novalidate>
+            <div class="form-group">
+              <label for="currentPassword" class="form-label">Current Password <span class="required">*</span></label>
+              <input type="password" id="currentPassword" class="form-control" required autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label for="newPassword" class="form-label">New Password <span class="required">*</span></label>
+              <input type="password" id="newPassword" class="form-control" required minlength="6" autocomplete="new-password" />
+              <div class="form-hint">At least 6 characters.</div>
+            </div>
+            <div class="form-group">
+              <label for="confirmNewPassword" class="form-label">Confirm New Password <span class="required">*</span></label>
+              <input type="password" id="confirmNewPassword" class="form-control" required autocomplete="new-password" />
+            </div>
+            <button type="submit" class="btn btn-primary" id="pw-btn">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="card mt-3">
+      <div class="card-body">
+        <h3 style="margin-bottom:1rem">Quick Actions</h3>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          <a href="/my-reports.html" class="btn btn-outline">📋 My Reports</a>
+          <a href="/my-claims.html" class="btn btn-outline">🏷️ My Claims</a>
+          <a href="/report-lost.html" class="btn btn-danger">Report Lost</a>
+          <a href="/report-found.html" class="btn btn-primary">Report Found</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script>
+let userData = null;
+
+async function init() {
+  const auth = await requireLogin();
+  if (!auth) return;
+
+  try {
+    const data = await apiFetch('/api/users/profile');
+    userData = data.user;
+    populateForm(data.user);
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+function populateForm(user) {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('content').classList.remove('hidden');
+
+  document.getElementById('profile-header').innerHTML = `
+    <div class="profile-avatar">${user.name.charAt(0).toUpperCase()}</div>
+    <div>
+      <h2 style="margin:0">${escapeHtml(user.name)}</h2>
+      <p class="text-muted">${escapeHtml(user.email)}</p>
+      ${user.department ? `<p class="text-small">${escapeHtml(user.department)}</p>` : ''}
+      <p class="text-small text-muted">Member since ${formatDate(user.createdAt)}</p>
+    </div>`;
+
+  document.getElementById('name').value = user.name;
+  document.getElementById('email').value = user.email;
+  document.getElementById('studentId').value = user.studentId || '';
+  document.getElementById('department').value = user.department || '';
+  document.getElementById('phone').value = user.phone || '';
+}
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alert = document.getElementById('profile-alert');
+  alert.classList.add('hidden');
+
+  const name = document.getElementById('name').value.trim();
+  if (!name) { alert.textContent = 'Name is required.'; alert.classList.remove('hidden'); return; }
+
+  const btn = document.getElementById('profile-btn');
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    const data = await apiFetch('/api/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        name,
+        studentId: document.getElementById('studentId').value.trim(),
+        department: document.getElementById('department').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+      }),
+    });
+    showToast('Profile updated!', 'success');
+    invalidateAuth();
+    populateForm(data.user);
+  } catch (err) {
+    alert.textContent = err.message;
+    alert.classList.remove('hidden');
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alert = document.getElementById('pw-alert');
+  alert.className = 'alert hidden';
+
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmNewPassword').value;
+
+  if (!currentPassword || !newPassword || !confirm) {
+    alert.textContent = 'All password fields are required.';
+    alert.className = 'alert alert-error';
+    return;
+  }
+  if (newPassword.length < 6) {
+    alert.textContent = 'New password must be at least 6 characters.';
+    alert.className = 'alert alert-error';
+    return;
+  }
+  if (newPassword !== confirm) {
+    alert.textContent = 'Passwords do not match.';
+    alert.className = 'alert alert-error';
+    return;
+  }
+
+  const btn = document.getElementById('pw-btn');
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    await apiFetch('/api/users/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    alert.textContent = '✅ Password changed successfully!';
+    alert.className = 'alert alert-success';
+    document.getElementById('password-form').reset();
+    showToast('Password updated!', 'success');
+  } catch (err) {
+    alert.textContent = err.message;
+    alert.className = 'alert alert-error';
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>
